@@ -39,8 +39,8 @@ int collectibleScore = 10;
 float powerupWidth = 20.0f;
 bool isShieldActive = false;
 bool isDoublePointsActive = false;
-float shieldDuration = 10.0f;
-float doublePointsDuration = 10.0f;
+float shieldDuration = 5.0f;
+float doublePointsDuration = 5.0f;
 float shieldTimeLeft = 0.0f;
 float doublePointsTimeLeft = 0.0f;
 
@@ -70,6 +70,8 @@ struct Obstacle {
 struct Collectable {
     float centerX;
     float centerY;
+	bool isGoingUp = false;
+    int directionCount = 60;
 
 	Collectable(float centerX, float centerY)
 		: centerX(centerX), centerY(centerY) {
@@ -124,7 +126,7 @@ static void spawnPowerup() {
 
     // Create a new obstacle based on the random choice
 
-    float centerY = getRandomNumber(60, 160);
+    float centerY = getRandomNumber(70, 160);
 
 	Powerup newPowerup = randomChoice == 1 ? Powerup(obstacleSpawnLocation, centerY, "shield") : Powerup(obstacleSpawnLocation, centerY, "doublePoints");
 
@@ -243,20 +245,43 @@ static void updateCollectables() {
         std::remove_if(collectablesList.begin(), collectablesList.end(), [](const Collectable& col) {
             return col.centerX < -obstacleWidth; // Check if the collectible is out of bounds
             }),
-        collectablesList.end() // Corrected to remove from collectablesList
+        collectablesList.end()
     );
 
     // Shift the remaining collectibles
     for (Collectable& col : collectablesList) {
         col.centerX -= 1.0f * speed; // Shift the center by speed units
+
+        // Move the collectible up or down
+        if (col.isGoingUp) {
+            col.centerY = col.centerY + 0.5f; // Move up
+        }
+        else {
+            if (col.centerY > groundLevel + 20.0f) {
+                col.centerY = col.centerY - 0.5f; // Move 
+            }
+        }
+
+
+        // Check if the direction count has reached zero
+        if (col.directionCount <= 0) {
+            col.isGoingUp = !col.isGoingUp; // Flip direction
+            col.directionCount = 60; // Reset count to a specific value (e.g., 60 frames)
+            //printf("Direction flipped\n");
+        }
+        else {
+            // Decrement the direction count
+            col.directionCount  = col.directionCount -  1;
+        }
     }
 }
+
 
 static void spawnCollectable() {
 
     // Create a new obstacle based on the random choice
 
-    float centerY = getRandomNumber(60, 160);
+    float centerY = getRandomNumber(70, 160);
     Collectable newCollectable = Collectable(obstacleSpawnLocation, centerY);
 
     if (canSpawnItem(newCollectable.centerX, newCollectable.centerY, collectableWidth)) {
@@ -980,7 +1005,7 @@ static void Display() {
             message = "Game Over! Score : " + std::to_string(score);
         }
 		else {
-			message = "Game End! You won with Score: " + std::to_string(score);
+			message = "Game End! Score: " + std::to_string(score);
 
         }
 
