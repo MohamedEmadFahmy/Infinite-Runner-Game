@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <list>
+#include <windows.h>
 #include <glut.h>
 
 
@@ -15,6 +16,9 @@ enum ObstacleType { LOW, HIGH };
 static bool canSpawnItem(float thingCenterX, float thingCenterY, float thingWidth);
 static int getRandomNumber(int low, int high);
 
+
+bool playedGameOverSound = false;
+bool playedGameEndSound = false;
 
 // Window Variables
 int screenWidth = 1920;
@@ -903,6 +907,7 @@ static void handleCollisions() {
                         if (playerLives == 0) {
                             isGameOver = true;
                         }
+                        PlaySound(TEXT("collision.wav"), NULL, SND_FILENAME | SND_ASYNC);
                     }
                 }
             }
@@ -920,6 +925,7 @@ static void handleCollisions() {
                         if (playerLives == 0) {
                             isGameOver = true;
                         }
+                        PlaySound(TEXT("collision.wav"), NULL, SND_FILENAME | SND_ASYNC);
                     }
                 }
             }
@@ -940,6 +946,9 @@ static void handleCollisions() {
             else {
                 score += collectibleScore;
             }
+
+            PlaySound(TEXT("coinPickup.wav"), NULL, SND_FILENAME | SND_ASYNC);
+            
         }
         else {
             ++it;  // Only increment if no deletion
@@ -964,6 +973,10 @@ static void handleCollisions() {
 				it = powerupsList.erase(it);
 
             }
+
+            PlaySound(TEXT("collectibleSound.wav"), NULL, SND_FILENAME | SND_ASYNC);
+
+            
 
         }
         else {
@@ -1025,9 +1038,17 @@ static void Display() {
 
         if (playerLives <= 0) {
             message = "Game Over! Score : " + std::to_string(score);
+            if (!playedGameOverSound) {
+                PlaySound(TEXT("gameOver.wav"), NULL, SND_FILENAME | SND_ASYNC);
+				playedGameOverSound = true;
+            }
         }
 		else {
 			message = "Game End! Score: " + std::to_string(score);
+            if (!playedGameEndSound) {
+                PlaySound(TEXT("gameEnd.wav"), NULL, SND_FILENAME | SND_ASYNC);
+				playedGameEndSound = true;
+            }
 
         }
 
@@ -1073,6 +1094,8 @@ int main(int argc, char** argv) {
     initOpenGL();
 	srand(static_cast<unsigned int>(time(0))); // Seed the random number generator
     initGame();
+
+    PlaySound(TEXT("bgMusic.wav"), NULL, SND_FILENAME | SND_ASYNC);
 
     glutDisplayFunc(Display);
     glutKeyboardFunc(keyboard);
