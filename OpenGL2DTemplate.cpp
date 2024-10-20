@@ -82,6 +82,8 @@ struct Powerup {
     float centerX;
     float centerY;
     std::string type; // Use std::string for the type
+	bool isGoingRight = false; // Angle for rotation
+	int directionCount = 10; // Count to change direction
 
     // Constructor with type parameter
     Powerup(float centerX, float centerY, const std::string& type)
@@ -115,6 +117,26 @@ static void updatePowerups() {
     // Shift the remaining collectibles
     for (Powerup& powerup: powerupsList) {
         powerup.centerX -= 1.0f * speed; // Shift the center by speed units
+
+        // Move the collectible up or down
+        if (powerup.isGoingRight) {
+            powerup.centerX = powerup.centerX + 0.3f * speed; // Move up
+        }
+        else {
+            powerup.centerX = powerup.centerX- 0.3f *  speed;
+        }
+
+
+        // Check if the direction count has reached zero
+        if (powerup.directionCount <= 0) {
+            powerup.isGoingRight = !powerup.isGoingRight; // Flip direction
+            powerup.directionCount = 10; // Reset count to a specific value (e.g., 60 frames)
+            //printf("Direction flipped\n");
+        }
+        else {
+            // Decrement the direction count
+            powerup.directionCount = powerup.directionCount - 1;
+        }
     }
 }
 
