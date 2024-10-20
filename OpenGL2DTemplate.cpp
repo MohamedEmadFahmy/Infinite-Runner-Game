@@ -7,6 +7,7 @@
 #include <vector>
 #include <cstdlib>
 #include <cmath>
+#include <list>
 #include <glut.h>
 
 
@@ -44,18 +45,20 @@ float playerX = 50.0f, playerY = groundLevel + 10;
 bool isJumping = false;
 bool isDucking = false;
 float jumpHeight = 90.0f;  // Max jump height
-float jumpSpeed = 0.0002f;      // Speed of the jump
+float jumpSpeed = 0.0001f;      // Speed of the jump
 float duckHeight = 20.0f;    // Height of the player when ducking
 float initialPlayerY = playerY; // Store initial Y position for jumping
+float playerHeight = isDucking ? 40.0f - duckHeight : 40.0f;
     
 // Define a struct to represent an obstacle
 struct Obstacle {
     float centerX, centerY; // Center position of the obstacle
     ObstacleType type;       // Type of the obstacle (high or low)
+    bool isHit;
 
     // Constructor to initialize an obstacle
     Obstacle(float centerX, float centerY, ObstacleType t)
-        : centerX(centerX), centerY(centerY), type(t) {
+        : centerX(centerX), centerY(centerY), type(t), isHit(false) {
     }
 };
 
@@ -89,9 +92,9 @@ float timeLeft = 60.0f;
 bool isGameOver = false;
 float speed = 1.0f;
 // Vector to hold all the obstacles
-std::vector<Obstacle> obstaclesList;
-std::vector<Collectable> collectablesList;
-std::vector<Powerup> powerupsList;
+std::list<Obstacle> obstaclesList;
+std::list<Collectable> collectablesList;
+std::list<Powerup> powerupsList;
 
 
 static void updatePowerups() {
@@ -601,8 +604,7 @@ static void updatePlayer() {
 
 static void drawPlayer() {
     // Adjust height based on ducking state
-    float playerHeight = isDucking ? 40.0f - duckHeight : 40.0f;
-
+    playerHeight = isDucking ? 40.0f - duckHeight : 40.0f;
 
     // Body (taller and narrower rectangle)
     glColor3f(0.0f, 0.0f, 1.0f);  // Blue shirt
@@ -668,71 +670,6 @@ static void drawPlayer() {
     glEnd();
 }
 
-//static void drawPlayer() {
-//    // Head (polygon approximation for the circle)
-//    glColor3f(1.0f, 0.8f, 0.6f); // Skin color
-//    glBegin(GL_POLYGON);
-//    for (int i = 0; i <= 20; ++i) {
-//        float angle = 2.0f * 3.14159f * i / 20;
-//        glVertex2f(playerX + cos(angle) * 10.0f, playerY + 50.0f + sin(angle) * 10.0f);  // Head at top
-//    }
-//    glEnd();
-//
-//    // Body (taller and narrower rectangle)
-//    glColor3f(0.0f, 0.0f, 1.0f);  // Blue shirt
-//    glBegin(GL_QUADS);
-//    glVertex2f(playerX - 5.0f, playerY + 10.0f); // Bottom-left (narrower width)
-//    glVertex2f(playerX + 5.0f, playerY + 10.0f); // Bottom-right (narrower width)
-//    glVertex2f(playerX + 5.0f, playerY + 40.0f); // Top-right
-//    glVertex2f(playerX - 5.0f, playerY + 40.0f); // Top-left
-//    glEnd();
-//
-//    // Arms (lines, tilted)
-//    glColor3f(1.0f, 0.8f, 0.6f);  // Skin color
-//    glBegin(GL_LINES);
-//    // Left arm (tilted downwards)
-//    glVertex2f(playerX - 5.0f, playerY + 30.0f); // Shoulder (attached to body)
-//    glVertex2f(playerX - 15.0f, playerY + 20.0f); // Hand (tilted downwards)
-//
-//    // Right arm (tilted downwards)
-//    glVertex2f(playerX + 5.0f, playerY + 30.0f); // Shoulder (attached to body)
-//    glVertex2f(playerX + 15.0f, playerY + 20.0f); // Hand (tilted downwards)
-//    glEnd();
-//
-//    // Legs (lines, tilted)
-//    glColor3f(0.0f, 0.0f, 1.0f);  // Blue pants
-//    glBegin(GL_LINES);
-//    // Left leg (tilted outwards)
-//    glVertex2f(playerX - 3.0f, playerY + 10.0f); // Hip
-//    glVertex2f(playerX - 10.0f, playerY - 10.0f); // Foot (tilted outwards)
-//
-//    // Right leg (tilted outwards)
-//    glVertex2f(playerX + 3.0f, playerY + 10.0f); // Hip
-//    glVertex2f(playerX + 10.0f, playerY - 10.0f); // Foot (tilted outwards)
-//    glEnd();
-//
-//    // Spiky hair (triangles above the head)
-//    glColor3f(1.0f, 0.0f, 0.0f); // Red hair
-//    glBegin(GL_TRIANGLES);
-//
-//    // Left spike
-//    glVertex2f(playerX - 10.0f, playerY + 60.0f);  // Left base point
-//    glVertex2f(playerX - 4.0f, playerY + 50.0f);  // Base center
-//    glVertex2f(playerX - 2.0f, playerY + 70.0f);  // Tip of the left spike
-//
-//    // Middle spike
-//    glVertex2f(playerX - 2.0f, playerY + 60.0f);  // Left base point
-//    glVertex2f(playerX + 2.0f, playerY + 60.0f);  // Right base point
-//    glVertex2f(playerX, playerY + 75.0f);         // Tip of the middle spike
-//
-//    // Right spike
-//    glVertex2f(playerX + 2.0f, playerY + 70.0f);  // Tip of the right spike
-//    glVertex2f(playerX + 4.0f, playerY + 50.0f);  // Base center
-//    glVertex2f(playerX + 10.0f, playerY + 60.0f);  // Right base point
-//    glEnd();
-//}
-
-
 // Keyboard handling
 static void keyboard(unsigned char key, int x, int y) {
     if (key == 'w') { // Space key for jumping
@@ -740,7 +677,7 @@ static void keyboard(unsigned char key, int x, int y) {
             isJumping = true;
         }
     }
-    if (key == 's') { // 's' key for ducking
+    if (!isJumping && key == 's') { // 's' key for ducking
         isDucking = true;
     }
 }
@@ -751,37 +688,14 @@ static void keyboardUp(unsigned char key, int x, int y) {
     }
 }
 
-static void drawImaginaryBoundary() {
+static void drawImaginaryBoundary(float xLocation) {
     glColor3f(1.0f, 1.0f, 0.0f); // Set the color to yellow (RGB: 1, 1, 0)
 
     glBegin(GL_LINES);  // Begin drawing lines
-    glVertex2f(65.0f, 0.0f);   // Starting point of the line at (65, 0)
-    glVertex2f(65.0f, 300.0f); // End point of the line at (65, 300)
+    glVertex2f(xLocation, 0.0f);   // Starting point of the line at (65, 0)
+    glVertex2f(xLocation, 300.0f); // End point of the line at (65, 300)
     glEnd();  // End drawing lines
 }
-
-
-//// Draw Collectable
-//static void drawCollectable() {
-//    glColor3f(0.0f, 0.0f, 1.0f);
-//    glBegin(GL_TRIANGLE_FAN);
-//    for (int i = 0; i <= 20; ++i) {
-//        float angle = 2.0f * 3.14159f * i / 20;
-//        glVertex2f(collectableX + cos(angle) * 10.0f, collectableY + sin(angle) * 10.0f);
-//    }
-//    glEnd();
-//}
-
-//// Draw PowerUp
-//static void drawPowerUp() {
-//    glColor3f(1.0f, 1.0f, 0.0f);
-//    glBegin(GL_TRIANGLE_FAN);
-//    for (int i = 0; i <= 20; ++i) {
-//        float angle = 2.0f * 3.14159f * i / 20;
-//        glVertex2f(powerupX + cos(angle) * 10.0f, powerupY + sin(angle) * 10.0f);
-//    }
-//    glEnd();
-//}
 
 // Initialize the game
 static void initGame() {
@@ -800,32 +714,6 @@ static void initGame() {
 static void updateGame(float deltaTime) {
     if (isGameOver) return;
 
-    // Update player logic (currently static)
-
-    //// Check if player collides with obstacles
-    //if (fabs(playerX - obstacleX) < 20 && fabs(playerY - obstacleY) < 20) {
-    //    playerLives--;
-    //    if (playerLives == 0) {
-    //        isGameOver = true;
-    //    }
-    //    obstacleX = rand() % 300;
-    //    obstacleY = rand() % 300;
-    //}
-
-    //// Check if player collects collectables
-    //if (fabs(playerX - collectableX) < 20 && fabs(playerY - collectableY) < 20) {
-    //    score += 10;
-    //    collectableX = rand() % 300;
-    //    collectableY = rand() % 300;
-    //}
-
-    //// Check if player gets a power-up
-    //if (fabs(playerX - powerupX) < 20 && fabs(playerY - powerupY) < 20) {
-    //    playerLives++;
-    //    powerupX = rand() % 300;
-    //    powerupY = rand() % 300;
-    //}
-
     // Decrease time left
     timeLeft -= deltaTime;
 	//score = score + (deltaTime * speed * 10);
@@ -834,38 +722,108 @@ static void updateGame(float deltaTime) {
     }
     speed += 0.001;
 }
+static void drawHitbox() {
+    glColor3f(1.0f, 1.0f, 0.0f);
+
+    // Draw horizontal line at y = 40
+    glBegin(GL_LINES);
+    glVertex2f(35.0f,  playerY - 10); // Left endpoint
+    glVertex2f(65.0f, playerY - 10);  // Right endpoint
+    glEnd();
+
+    // Draw horizontal line at y = 120
+    glBegin(GL_LINES);
+    glVertex2f(35.0f, playerY + playerHeight + 20); // Left endpoint
+    glVertex2f(65.0f, playerY + playerHeight + 20);  // Right endpoint
+    glEnd();
+
+    // Draw vertical line at x = 35
+    glBegin(GL_LINES);
+    glVertex2f(35.0f, playerY - 10); // Bottom endpoint
+    glVertex2f(35.0f, playerY + playerHeight + 20);  // Top endpoint
+    glEnd();
+
+    // Draw vertical line at x = 65
+    glBegin(GL_LINES);
+    glVertex2f(65.0f, playerY - 10); // Bottom endpoint
+    glVertex2f(65.0f, playerY + playerHeight + 20);  // Top endpoint
+    glEnd();
+
+   
+    glEnd();
+}
 
 static void handleCollisions() {
-	// Check if player collides with obstacles
-	for (Obstacle& obs : obstaclesList) {
-		if (fabs(playerX - obs.centerX) < 20 && fabs(playerY - obs.centerY) < 20) {
-			playerLives--;
-			if (playerLives == 0) {
-				isGameOver = true;
-			}
-			obs.centerX = rand() % 300;
-			obs.centerY = rand() % 300;
-		}
-	}
+    float leastPlayerX = 35.0f; // Player's left boundary
+    float mostPlayerX = 65.0f;  // Player's right boundary
 
-	// Check if player collects collectables
-	for (Collectable& col : collectablesList) {
-		if (fabs(playerX - col.centerX) < 20 && fabs(playerY - col.centerY) < 20) {
-			score += 10;
-			col.centerX = rand() % 300;
-			col.centerY = rand() % 300;
-		}
-	}
+    float leastPlayerY = playerY - 10;  // Player's bottom boundary
+    float mostPlayerY = playerY + playerHeight + 20;  // Player's top boundary
 
-	// Check if player gets a power-up
-	for (Powerup& powerup : powerupsList) {
-		if (fabs(playerX - powerup.centerX) < 20 && fabs(playerY - powerup.centerY) < 20) {
-			playerLives++;
-			powerup.centerX = rand() % 300;
-			powerup.centerY = rand() % 300;
-		}
-	}
+	drawHitbox();
 
+    // Check if player collides with obstacles (including high and low obstacles)
+    for (Obstacle& obs : obstaclesList) {
+        // Check for collisions with low obstacles (Y range: 40 to 50)
+        if (obs.type == LOW) {  // Assuming 'LOW' is the type for low obstacles
+            if (mostPlayerX > obs.centerX - obstacleWidth / 2 && leastPlayerX < obs.centerX + obstacleWidth / 2 &&
+                leastPlayerY >= 40 && leastPlayerY <= 50) {  // Check if the minimum Y of the player is in range
+                if (!obs.isHit) {
+                    playerLives--;
+					obs.isHit = true;
+                    if (playerLives == 0) {
+                        isGameOver = true;
+                    }
+                }
+            }
+        }
+
+        // Check for collisions with high obstacles (Y range: 100 to 260)
+        else if (obs.type == HIGH) {  // Assuming 'HIGH' is the type for high obstacles
+            // Check for collisions with the rectangular part of the high obstacle
+            if (mostPlayerX > obs.centerX - obstacleWidth / 2 && leastPlayerX < obs.centerX + obstacleWidth / 2 &&
+                mostPlayerY >= 100 && mostPlayerY <= 260) {  // Check if the maximum Y of the player is in range
+                if (!obs.isHit) {
+                    playerLives--;
+                    obs.isHit = true;
+                    if (playerLives == 0) {
+                        isGameOver = true;
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    // Check if player collects collectables
+    for (auto it = collectablesList.begin(); it != collectablesList.end();) {
+        // Check if any part of the player is within the collectable bounds
+        if (mostPlayerX > it->centerX - 20 && leastPlayerX < it->centerX + 20 &&
+            mostPlayerY > it->centerY - 20 && leastPlayerY < it->centerY + 20) {
+            score += 10;
+            it = collectablesList.erase(it);  // Erase and get the next valid iterator
+        }
+        else {
+            ++it;  // Only increment if no deletion
+        }
+    }
+
+    // Check if player gets a power-up
+    for (auto it = powerupsList.begin(); it != powerupsList.end();) {
+        // Check if any part of the player is within the power-up bounds
+        if (mostPlayerX > it->centerX - 20 && leastPlayerX < it->centerX + 20 &&
+            mostPlayerY > it->centerY - 20 && leastPlayerY < it->centerY + 20) {
+            // Apply power-up effects here (e.g., activate shield or double points)
+            it = powerupsList.erase(it);  // Erase and get the next valid iterator
+        }
+        else {
+            ++it;  // Only increment if no deletion
+        }
+    }
+
+
+}
 
 // Render the game
 static void renderGame() {
@@ -876,17 +834,14 @@ static void renderGame() {
     drawTopBoundary();
     drawBottomBoundary();
 
-    // Draw player, obstacle, collectable, and power-up
+    // Draw player
     drawPlayer();
-
-    //drawObstacle();
-    //drawCollectable();
-    //drawPowerUp();
 
     // Draw game stats
     drawLives();
     drawScore();
     drawTime();
+
     updateObstacles();
 	spawnObstacle();
 
@@ -899,10 +854,8 @@ static void renderGame() {
     drawObstacles();
 	drawCollectables();
 	drawPowerups();
-
-
-    // Imaginary Boundary
-    drawImaginaryBoundary();
+    
+    handleCollisions();
 
     // Flush the OpenGL commands
     glFlush();
@@ -969,9 +922,6 @@ int main(int argc, char** argv) {
     initOpenGL();
 	srand(static_cast<unsigned int>(time(0))); // Seed the random number generator
     initGame();
-
-    // Test object spawns
-    //initObstacles();
 
     glutDisplayFunc(Display);
     glutKeyboardFunc(keyboard);
