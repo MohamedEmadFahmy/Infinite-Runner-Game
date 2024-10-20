@@ -29,7 +29,10 @@ float orthoHeight = 300.0f;
 // Obstacle Variables
 float obstacleWidth = 20.0f;
 float obstacleSpawnLocation = 400.0f;
+
+// Collectible variables
 float collectableWidth = 20.0f;
+int collectibleScore = 10;
 
 
 // Power up variables
@@ -38,6 +41,8 @@ bool isShieldActive = false;
 bool isDoublePointsActive = false;
 float shieldDuration = 10.0f;
 float doublePointsDuration = 10.0f;
+float shieldTimeLeft = 0.0f;
+float doublePointsTimeLeft = 0.0f;
 
 // Player variables
 float groundLevel = 40.0f;
@@ -45,7 +50,7 @@ float playerX = 50.0f, playerY = groundLevel + 10;
 bool isJumping = false;
 bool isDucking = false;
 float jumpHeight = 90.0f;  // Max jump height
-float jumpSpeed = 0.0001f;      // Speed of the jump
+float jumpSpeed = 0.00012f;      // Speed of the jump
 float duckHeight = 20.0f;    // Height of the player when ducking
 float initialPlayerY = playerY; // Store initial Y position for jumping
 float playerHeight = isDucking ? 40.0f - duckHeight : 40.0f;
@@ -119,7 +124,7 @@ static void spawnPowerup() {
 
     // Create a new obstacle based on the random choice
 
-    float centerY = getRandomNumber(60, 150);
+    float centerY = getRandomNumber(60, 160);
 
 	Powerup newPowerup = randomChoice == 1 ? Powerup(obstacleSpawnLocation, centerY, "shield") : Powerup(obstacleSpawnLocation, centerY, "doublePoints");
 
@@ -128,7 +133,7 @@ static void spawnPowerup() {
     }
 }
 
-static void drawShield(float centerX, float centerY) {
+static void drawDoublePoints(float centerX, float centerY) {
     float color[3] = { 0.0f, 0.5f, 1.0f }; // Color (blue)
 
     // Draw a rectangle (as the base)
@@ -174,7 +179,7 @@ static void drawShield(float centerX, float centerY) {
 
 
 
-static void drawDoublePoints(float centerX, float centerY) {
+static void drawShield(float centerX, float centerY) {
     float color[3] = { 1.0f, 0.5f, 0.0f }; // Color (orange)
 
     // Draw a rectangle (as the base)
@@ -251,7 +256,7 @@ static void spawnCollectable() {
 
     // Create a new obstacle based on the random choice
 
-    float centerY = getRandomNumber(60, 150);
+    float centerY = getRandomNumber(60, 160);
     Collectable newCollectable = Collectable(obstacleSpawnLocation, centerY);
 
     if (canSpawnItem(newCollectable.centerX, newCollectable.centerY, collectableWidth)) {
@@ -453,16 +458,16 @@ static void updateObstacles() {
 
 static void drawText(float x, float y, const std::string& text) {
     // Calculate text width and height
-    int textWidth = text.length() * 4; // Approximate width per character (adjust if needed)
+    int textWidth = text.length() * 3.5; // Approximate width per character (adjust if needed)
     int textHeight = 40; // Height of the font
 
     // Draw background rectangle
     glColor3f(0.0f, 0.0f, 0.0f); // Black background
     glBegin(GL_QUADS);
-    glVertex2f(x - 5, y - 5); // Bottom left
-    glVertex2f(x + textWidth - 5, y - 5); // Bottom right
-    glVertex2f(x + textWidth - 5, y + textHeight ); // Top right
-    glVertex2f(x - 5, y + textHeight); // Top left
+    glVertex2f(x, y - 5); // Bottom left
+    glVertex2f(x + textWidth, y - 5); // Bottom right
+    glVertex2f(x + textWidth, y + textHeight ); // Top right
+    glVertex2f(x, y + textHeight); // Top left
     glEnd();
 
     // Set text color
@@ -475,26 +480,86 @@ static void drawText(float x, float y, const std::string& text) {
     }
 }
 
-
-// Draw Lives on screen
+// Function to draw the player's health bar and plus signs representing lives
 static void drawLives() {
+    float startX = 0.0f;  // Starting position for drawing the health bar
+    float startY = 260.0f; // Y position for the health bar
+    const int maxLives = 5; // Maximum number of lives
+    float barWidth = 100.0f; // Width of the health bar
+    float barHeight = 20.0f; // Height of the health bar
+    float signSize = 10.0f; // Size of the plus sign
+
+    // Draw the background of the health bar
+    glColor3f(0.8f, 0.8f, 0.8f); // Light gray for the background
+    glBegin(GL_QUADS);
+    glVertex2f(startX, startY);                    // Bottom-left
+    glVertex2f(startX + barWidth, startY);         // Bottom-right
+    glVertex2f(startX + barWidth, startY + barHeight); // Top-right
+    glVertex2f(startX, startY + barHeight);        // Top-left
+    glEnd();
+
+    // Draw the filled part of the health bar based on lives
+    float filledWidth = (barWidth / maxLives) * playerLives; // Width to fill based on lives
+    glColor3f(1.0f, 0.0f, 0.0f); // Red for filled part
+    glBegin(GL_QUADS);
+    glVertex2f(startX, startY);                       // Bottom-left
+    glVertex2f(startX + filledWidth, startY);        // Bottom-right
+    glVertex2f(startX + filledWidth, startY + barHeight); // Top-right
+    glVertex2f(startX, startY + barHeight);          // Top-left
+    glEnd();
+
+    // Set color for the plus sign (red)
+    glColor3f(1.0f, 0.0f, 0.0f);
+
+    // Move the plus sign closer to the bar
+    float offsetX = startX + barWidth + 10; // Calculate position for the plus sign (moved closer)
+    float offsetY = startY + barHeight / 2; // Vertical center of the health bar
+
+    // Set line width for the plus sign
+    glLineWidth(6.0f); // Change the thickness as needed
+
+    // Draw vertical part of the plus sign using lines
+    glBegin(GL_LINES);
+    glVertex2f(offsetX, offsetY - signSize / 2); // Bottom point
+    glVertex2f(offsetX, offsetY + signSize / 2); // Top point
+    glEnd();
+
+    // Draw horizontal part of the plus sign using lines
+    glBegin(GL_LINES);
+    glVertex2f(offsetX - signSize / 2, offsetY); // Left point
+    glVertex2f(offsetX + signSize / 2, offsetY); // Right point
+    glEnd();
+
+    // Reset line width to default if necessary
+    glLineWidth(1.0f); // Reset to default line width
+}
+
+
+
+// Draw Time on screen
+static void drawTime() {
     std::stringstream ss;
-    ss << "Lives: " << playerLives; // Concatenate the lives into a string
-    drawText(10.0f, 290.0f, ss.str()); // Call drawText with the formatted string
+    ss << std::fixed << std::setprecision(1) << "Time: " << timeLeft; // Format the time
+    drawText(0.0f, 290.0f, ss.str()); // Call drawText with the formatted string
+}
+
+static void drawShieldTimer() {
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(1) << "Shield Effect: " << shieldTimeLeft;
+    drawText(50.0f, 290.0f, ss.str());
+}
+
+static void drawDoublePointsTimer() {
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(1) << "Double Points Effect: " << doublePointsTimeLeft;
+    drawText(120.0f, 290.0f, ss.str());
 }
 
 // Draw Score on screen
 static void drawScore() {
     std::stringstream ss;
     ss << std::fixed << std::setprecision(1) << "Score: " << score; // Format the score
-    drawText(260.0f, 290.0f, ss.str()); // Call drawText with the formatted string
-}
-
-// Draw Time on screen
-static void drawTime() {
-    std::stringstream ss;
-    ss << std::fixed << std::setprecision(1) << "Time: " << timeLeft; // Format the time
-    drawText(130.0f, 290.0f, ss.str()); // Call drawText with the formatted string
+    drawText(220.0f, 290.0f, ss.str()); // Call drawText with the formatted string
 }
 
 // Draw the top boundary (ceiling and decorations)
@@ -702,7 +767,7 @@ static void initGame() {
     srand(time(0));
     playerX = 50.0f;
     playerY = groundLevel;
-    playerLives = 3;
+    playerLives = 5;
     score = 0;
     timeLeft = 60.0f;
     isGameOver = false;
@@ -713,6 +778,22 @@ static void initGame() {
 // Update player, obstacles, collectables, and power-ups
 static void updateGame(float deltaTime) {
     if (isGameOver) return;
+
+    if (shieldTimeLeft > 0) {
+        shieldTimeLeft -= deltaTime; 
+        if (shieldTimeLeft <= 0) {
+            isShieldActive= false;
+            shieldTimeLeft = 0; 
+        }
+    }
+
+    if (doublePointsTimeLeft > 0) {
+        doublePointsTimeLeft -= deltaTime;
+        if (doublePointsTimeLeft <= 0) {
+            isDoublePointsActive = false;
+            doublePointsTimeLeft = 0;
+        }
+    }
 
     // Decrease time left
     timeLeft -= deltaTime;
@@ -768,11 +849,13 @@ static void handleCollisions() {
         if (obs.type == LOW) {  // Assuming 'LOW' is the type for low obstacles
             if (mostPlayerX > obs.centerX - obstacleWidth / 2 && leastPlayerX < obs.centerX + obstacleWidth / 2 &&
                 leastPlayerY >= 40 && leastPlayerY <= 50) {  // Check if the minimum Y of the player is in range
-                if (!obs.isHit) {
-                    playerLives--;
-					obs.isHit = true;
-                    if (playerLives == 0) {
-                        isGameOver = true;
+                if (!isShieldActive) {
+                    if (!obs.isHit) {
+                        playerLives--;
+					    obs.isHit = true;
+                        if (playerLives == 0) {
+                            isGameOver = true;
+                        }
                     }
                 }
             }
@@ -783,11 +866,13 @@ static void handleCollisions() {
             // Check for collisions with the rectangular part of the high obstacle
             if (mostPlayerX > obs.centerX - obstacleWidth / 2 && leastPlayerX < obs.centerX + obstacleWidth / 2 &&
                 mostPlayerY >= 100 && mostPlayerY <= 260) {  // Check if the maximum Y of the player is in range
-                if (!obs.isHit) {
-                    playerLives--;
-                    obs.isHit = true;
-                    if (playerLives == 0) {
-                        isGameOver = true;
+                if (!isShieldActive) {
+                    if (!obs.isHit) {
+                        playerLives--;
+                        obs.isHit = true;
+                        if (playerLives == 0) {
+                            isGameOver = true;
+                        }
                     }
                 }
             }
@@ -801,8 +886,13 @@ static void handleCollisions() {
         // Check if any part of the player is within the collectable bounds
         if (mostPlayerX > it->centerX - 20 && leastPlayerX < it->centerX + 20 &&
             mostPlayerY > it->centerY - 20 && leastPlayerY < it->centerY + 20) {
-            score += 10;
             it = collectablesList.erase(it);  // Erase and get the next valid iterator
+            if (isDoublePointsActive) {
+                score += 2 * collectibleScore;
+            }
+            else {
+                score += collectibleScore;
+            }
         }
         else {
             ++it;  // Only increment if no deletion
@@ -815,14 +905,24 @@ static void handleCollisions() {
         if (mostPlayerX > it->centerX - 20 && leastPlayerX < it->centerX + 20 &&
             mostPlayerY > it->centerY - 20 && leastPlayerY < it->centerY + 20) {
             // Apply power-up effects here (e.g., activate shield or double points)
-            it = powerupsList.erase(it);  // Erase and get the next valid iterator
+
+            if (it ->type == "shield") {
+                isDoublePointsActive = true;
+                doublePointsTimeLeft = doublePointsDuration;
+                it = powerupsList.erase(it);
+            }
+			else if (it->type == "doublePoints") {
+				isShieldActive = true;
+				shieldTimeLeft = shieldDuration;
+				it = powerupsList.erase(it);
+
+            }
+
         }
         else {
             ++it;  // Only increment if no deletion
         }
     }
-
-
 }
 
 // Render the game
@@ -838,9 +938,18 @@ static void renderGame() {
     drawPlayer();
 
     // Draw game stats
-    drawLives();
     drawScore();
     drawTime();
+
+    drawLives();
+
+    if (isShieldActive) {
+		drawShieldTimer();
+    }
+
+	if (isDoublePointsActive) {
+		drawDoublePointsTimer();
+	}
 
     updateObstacles();
 	spawnObstacle();
@@ -907,11 +1016,6 @@ static void initOpenGL() {
     glOrtho(0, orthoWidth, 0, orthoHeight, -1, 1);
     glMatrixMode(GL_MODELVIEW);
 }
-
-
-
-
-
 
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
