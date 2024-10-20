@@ -26,13 +26,33 @@ float score = 0;
 float timeLeft = 60.0f;
 bool isGameOver = false;
 
-// Draw Text on screen
-static void drawText(float x, float y, std::string text) {
+static void drawText(float x, float y, const std::string& text) {
+    // Calculate text width and height
+    int textWidth = text.length() * 4; // Approximate width per character (adjust if needed)
+    int textHeight = 40; // Height of the font
+
+    // Draw background rectangle
+    glColor3f(0.0f, 0.0f, 0.0f); // Black background
+    glBegin(GL_QUADS);
+    glVertex2f(x, y); // Bottom left
+    glVertex2f(x + textWidth, y); // Bottom right
+    glVertex2f(x + textWidth , y + textHeight ); // Top right
+    glVertex2f(x, y + textHeight); // Top left
+    glEnd();
+
+    // Set text color
+    glColor3f(1.0f, 1.0f, 1.0f); // White text
+
+    // Draw the text in the original position without offset
     glRasterPos2f(x, y);
     for (char c : text) {
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
+        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c); // Render the text normally
     }
 }
+
+
+
+
 
 // Draw Lives on screen
 static void drawLives() {
@@ -52,12 +72,32 @@ static void drawScore() {
 static void drawTime() {
     std::stringstream ss;
     ss << std::fixed << std::setprecision(1) << "Time: " << timeLeft; // Format the time
-    drawText(150.0f, 290.0f, ss.str()); // Call drawText with the formatted string
+    drawText(130.0f, 290.0f, ss.str()); // Call drawText with the formatted string
+}
+
+// Draw the top boundary (ceiling and decorations)
+static void drawTopBoundary() {
+    // Draw the ceiling using 6 triangles
+    glColor3f(0.8f, 0.8f, 0.8f); // Light gray for the triangles
+
+    // Each triangle has a base width of 50 (300 / 6 = 50)
+    float noTriangles = 15;
+    float baseWidth = 300.0f / noTriangles;
+
+    for (int i = 0; i < noTriangles; ++i) {
+        glBegin(GL_TRIANGLES);
+        // Left vertex of the triangle
+        glVertex2f(i * baseWidth, 300.0f);       // Top-left corner
+        glVertex2f((i + 1) * baseWidth, 300.0f); // Top-right corner
+        glVertex2f((i + 0.5f) * baseWidth, 260.0f); // Bottom vertex
+        glEnd();
+    }
+
 }
 
 
-// Draw the environment (sky at the top, ground at the bottom)
-static void drawEnvironment() {
+// Draw the bottom boundary (ground, water, and decorations)
+static void drawBottomBoundary() {
     // Draw the water section
     glColor3f(0.0f, 0.5f, 1.0f); // Blue color for water
     glRectf(0.0f, 0.0f, 300.0f, 15.0f);  // Water section (height reduced)
@@ -104,16 +144,8 @@ static void drawEnvironment() {
     glVertex2f(270.0f, 15.0f); // Grass 6 - Base left (aligned with land)
     glVertex2f(275.0f, 35.0f); // Grass 6 - Top
     glVertex2f(280.0f, 15.0f); // Grass 6 - Base right
-
     glEnd();
-
-    // Draw the sky at the top
-    glColor3f(0.53f, 0.81f, 0.98f); // Light blue for the sky
-    glRectf(0.0f, 260.0f, 300.0f, 300.0f);  // Sky
 }
-
-
-
 
 
 // Draw Player as a human-shaped figure using 4 different primitives
@@ -274,7 +306,8 @@ static void renderGame() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw the environment (ground and sky)
-    drawEnvironment();
+    drawTopBoundary();
+    drawBottomBoundary();
 
     // Draw player, obstacle, collectable, and power-up
     drawPlayer();
